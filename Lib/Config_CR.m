@@ -1,9 +1,9 @@
-% Configuration file for the DBS-OUD Cue Reactivity project
+% Configuration file for the RNI-OUD Cue Reactivity project
 % written Jan 2022 Jacob Suffridge
 
 config = struct();
 % Main root directory
-config.root = 'C:\Users\jesuffridge\Documents\MATLAB\Projects\DBS-OUD';
+config.root = 'C:\Users\jesuffridge\Documents\MATLAB\Projects\RNI-OUD';
 
 % Path to function Library
 config.lib = [config.root '\Lib\'];
@@ -19,7 +19,7 @@ config.cues = [config.root '\Addiction Cues\Cue Library'];
 % config.nicotine = [config.cues '\Nicotine\'];
 
 config.demo_cues = [config.root '\Drug_Cues\Heroin'];
-% Path to save data recorded during OUD-DBS task
+% Path to save data recorded during RNI-OUD task
 config.data = [config.root '\Data\'];
 
 % Parameter to enable debug mode
