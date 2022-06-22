@@ -1,6 +1,6 @@
-% Cue Reactivity.m is a script used to present drug cues to participants using 
-% the weights determined in the training/previous session The script will showcase 
-% a various panel of drug images while immediately allowing the subject to provide 
+% Cue Reactivity.m is a script used to present drug cues to participants using
+% the weights determined in the training/previous session The script will showcase
+% a various panel of drug images while immediately allowing the subject to provide
 % a rating of their craving. These ratings will automatically be recorded
 % for analysis
 %
@@ -11,30 +11,40 @@ KbName('UnifyKeyNames');
 
 %% Subject ID and Session Number should be changed every time the task is ran
 % -------------------------------------------------------------------------
-subjectID = 'jacob_demo';
-sessionNum = 'test';
+subjectID = 'test';
+sessionNum = 'training';
+fetchNewImages = 0;
 % -------------------------------------------------------------------------
 %% Pre-Task setup ---------------------------------------------------------
-% Call Config_CR.m to set path variables
-Config_CR;
+% Call Config_Training.m to set path variables
+config = Config_Training(subjectID);
 cd(config.root)
 
 % Add Library and Drug Cues to path
 addpath(config.lib);
 addpath(config.cues);
+addpath(config.data);
 
-% Fetch image list depending on the input list arguement
-list = load([config.data subjectID '\' config.CR_list]);
-list = list.image_paths;
+tmp_dir = dir(config.data);
+tmp_dir(ismember({tmp_dir.name},{'.','..'})) = [];
+
+disp(['Loading ' tmp_dir(1).name])
+temp = load(tmp_dir(1).name); temp = temp.data;
+
+weights = temp.weights;
+cues = temp.CuesTypes;
+
+% Fetch new image list depending on the input list arguement
+list = image_list_gen_CR(subjectID, weights, cues);
 [preloaded_images, random_list] = preload_CR_images(list);
 
 % Fetch the directory of drugs to get the folder names for later
-folder_names = load(config.drug_names);
-folder_names = folder_names.folderNames;
+folder_names = cues;
+% folder_names = folder_names.folderNames;
 
 % Get total number of images
 numImgs = length(list);
-% numImgs = 5;
+numImgs = 10;
 
 % Load the Craving Rating Scale and resize
 craving_scale = imread([config.rating_scales, '\', 'Slide1.jpeg']);
@@ -79,9 +89,9 @@ baseFixationTime = 2;
 
 % Call some default settings for setting up Psychtoolbox
 PsychDefaultSetup(2);
-if config.debug
-    PsychDebugWindowConfiguration();
-end
+% if config.debug
+%     PsychDebugWindowConfiguration();
+% end
 
 % Initialize screen preferences
 Screen('Preference', 'ConserveVRAM', 4096);
@@ -107,6 +117,11 @@ grey = white / 2;
 % Open an on screen window
 [w, windowRect] = PsychImaging('OpenWindow', screenNumber, grey);
 Screen('BlendFunction', w, 'GL_SRC_ALPHA', 'GL_ONE_MINUS_SRC_ALPHA');
+
+% Used for something else entirely delete me
+% img = imresize(imread('download (12).jpg'),[1080,1920]);
+% Screen('PutImage', w, img);
+% Screen('Flip', w);
 
 % Query the frame duration
 ifi = Screen('GetFlipInterval', w);
@@ -209,7 +224,7 @@ initialFixationOnset = Screen('Flip', w);
 while GetSecs - initialFixationOnset <= baseFixationTime, end
 
 %% Start of Image Presentation
-for j = 1:numImgs
+for j = 1:sum(numImgs)
     % Pull the current image to the screen
     Screen('PutImage', w, preloaded_images{j});
     imgOnset = Screen('Flip',w);
@@ -269,7 +284,7 @@ time = datetime('now') - mri_onset;
 sca;
 
 %% Convert the keyCodes to number codes
-for i = 1:numImgs
+for i = 1:sum(numImgs)
     % Convert Character to Number
     if strcmp(ratings{i},'a') || strcmp(ratings{i},'1!')
         numRatings{i} = 1;
@@ -291,15 +306,22 @@ for i = 1:numImgs
         numRatings{i} = 9;
     elseif strcmp(ratings{i},'0)')
         numRatings{i} = 0;
-    else
+    elseif strcmp(ratings{i},'undefined')
+        numRatings{i} = nan;
+    else 
     end
 end
+
+% show ratings as function of time
+figure;
+scatter(1:length(numRatings), cell2mat(numRatings));
+xticklabels({list{:,2}}) %#ok<CCAT1> 
 
 %% Calculate and Save Task Variables
 % Store labeled ratings in ftemp
 % ftemp = [random_list(:,2), numRatings'];
 
-fake_ratings = num2cell(randi(10,[1,50])-1)';
+fake_ratings = num2cell(randi(10,[1,101])-1)';
 ftemp = [random_list(:,2),fake_ratings];
 
 
@@ -308,16 +330,16 @@ folders_used = cell(length(folder_names),1);
 for i = 1:length(folder_names)
     tmp = [];
     for j = 1:length(ftemp)
-        if strcmp(ftemp{j,1},folder_names(i).name) %&& isinteger(ftemp{j,2})
+        if strcmp(ftemp{j,1},folder_names{i}) %&& isinteger(ftemp{j,2})
             tmp = [tmp, ftemp{j,2}]; %#ok<AGROW>
         end
     end
     sorted_ratings{i,1} = tmp; %#ok<SAGROW>
-    sorted_ratings{i,2} = mean(tmp,2); %#ok<SAGROW> 
-    sorted_ratings{i,3} = min(tmp,[],2); %#ok<SAGROW> 
-    sorted_ratings{i,4} = max(tmp,[],2); %#ok<SAGROW> 
+    sorted_ratings{i,2} = mean(tmp,2); %#ok<SAGROW>
+    sorted_ratings{i,3} = min(tmp,[],2); %#ok<SAGROW>
+    sorted_ratings{i,4} = max(tmp,[],2); %#ok<SAGROW>
 
-    folders_used{i,1} = folder_names(i).name;
+    folders_used{i,1} = folder_names{i};
 
 end
 

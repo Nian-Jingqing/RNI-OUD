@@ -11,30 +11,40 @@ KbName('UnifyKeyNames');
 
 %% Subject ID and Session Number should be changed every time the task is ran
 % -------------------------------------------------------------------------
-subjectID = 'jacob_demo';
+subjectID = 'test';
 sessionNum = 'training';
+fetchNewImages = 1;
+noExposure = {};
+% EX: noExposure = {'Alcohol','Nicotine'};
 % -------------------------------------------------------------------------
 %% Pre-Task setup ---------------------------------------------------------
-% Call Config_CR.m to set path variables
-Config_CR;
+% Call Config_Training.m to set path variables
+config = Config_Training(subjectID);
 cd(config.root)
 
 % Add Library and Drug Cues to path
 addpath(config.lib);
 addpath(config.cues);
 
-% Fetch image list depending on the input list arguement
-list = load(config.training_list);
-list = list.image_paths;
-[preloaded_images, random_list] = preload_CR_images(list);
+if fetchNewImages
+    % Fetch new image list depending on the input list arguement
+    list = image_list_gen_training(subjectID,noExposure);
+else
+    % Pull image list from load files directory
+    tmp_dir = dir(config.load_files);
+    tmp_dir(~contains({tmp_dir.name},{'List'})) = [];
+    list = load([config.load_files, '\', tmp_dir(end).name]);
+    list = list.image_paths;
+end
 
+[preloaded_images, random_list] = preload_CR_images(list);
 % Fetch the directory of drugs to get the folder names for later
 folder_names = load(config.drug_names);
 folder_names = folder_names.folderNames;
 
 % Get total number of images
 numImgs = length(list);
-% numImgs = 5;
+numImgs = 5;
 
 % Load the Craving Rating Scale and resize
 craving_scale = imread([config.rating_scales, '\', 'Slide1.jpeg']);
@@ -54,7 +64,7 @@ ScreenInstruct2 = '\n\n Please wait for the Craving Rating Scale to appear on sc
 ScreenInstruct3 = 'When presented with a "+" please rest with your \n\n eyes open and wait for the next block to start. \n\n\n\n Press "3" to continue';
 
 % Base Fixation Duration before task starts
-baseFixationTime = 2;
+baseFixationTime = config.baseFixation_duration;
 
 % % Confirm Valid Input Arguements will terminate code if not correct
 % if ~ischar(subjectID) || ~ischar(sessionNum)
@@ -79,14 +89,10 @@ baseFixationTime = 2;
 
 % Call some default settings for setting up Psychtoolbox
 PsychDefaultSetup(2);
-if config.debug
-    PsychDebugWindowConfiguration();
-end
 
 % Initialize screen preferences
 Screen('Preference', 'ConserveVRAM', 4096);
 % Screen('Preference','VBLTimestampingMode',-1);
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 Screen('Preference','SkipSyncTests', 1);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -97,7 +103,7 @@ screens = Screen('Screens');
 
 % Draw to the external screen if available
 screenNumber = max(screens);
-screenNumber = 2;
+% screenNumber = 2;
 
 % Define black and white screens
 white = WhiteIndex(screenNumber);
@@ -177,27 +183,7 @@ while 1
     end
 end
 
-%% Waiting for MRI Trigger
-% Set screen to wait for MRI trigger
-Screen('TextStyle',w,1);
-Screen('TextSize',w, textSize);
-Screen('TextFont',w, 'Arial');
-DrawFormattedText(w, 'Waiting on MRI.....','center', 'center', black,[],0,0);
-Screen('Flip', w);
-
-str = [];
-FlushEvents('KeyDown');
-% trigger release check
-while 1
-    str = GetChar(0);
-    disp(str);
-    if strcmp(str,'T')
-        mri_onset = datetime('now');
-        break;
-    end
-end
-disp('MRI Trigger recieved')
-
+tic;
 %% Baseline Fixation Screen
 Screen('TextStyle',w,1);
 Screen('TextSize',w,fixSize);
@@ -259,11 +245,10 @@ for j = 1:numImgs
     DrawFormattedText(w, '+','center', 'center', black,[],0,0);
     Screen('Flip', w);
 
-    % Rating RT + fixation = 3 seconds
-    while GetSecs - tStart <= time2wait, end
+%     % Rating RT + fixation = 3 seconds
+%     while GetSecs - tStart <= time2wait, end
 end
-% Get the duration of the task starting with the end - the first image onset
-time = datetime('now') - mri_onset;
+toc;
 
 % Clear screen at the end of the task
 sca;
@@ -271,13 +256,13 @@ sca;
 %% Convert the keyCodes to number codes
 for i = 1:numImgs
     % Convert Character to Number
-    if strcmp(ratings{i},'a') || strcmp(ratings{i},'1!')
+    if strcmp(ratings{i},'1!')
         numRatings{i} = 1;
-    elseif strcmp(ratings{i},'b') || strcmp(ratings{i},'2@')
+    elseif strcmp(ratings{i},'2@')
         numRatings{i} = 2;
-    elseif strcmp(ratings{i},'c') || strcmp(ratings{i},'3#')
+    elseif strcmp(ratings{i},'3#')
         numRatings{i} = 3;
-    elseif strcmp(ratings{i},'d') || strcmp(ratings{i},'4$')
+    elseif strcmp(ratings{i},'4$')
         numRatings{i} = 4;
     elseif strcmp(ratings{i},'5%')
         numRatings{i} = 5;
@@ -292,16 +277,16 @@ for i = 1:numImgs
     elseif strcmp(ratings{i},'0)')
         numRatings{i} = 0;
     else
+
     end
 end
 
 %% Calculate and Save Task Variables
 % Store labeled ratings in ftemp
-% ftemp = [random_list(:,2), numRatings'];
+ftemp = [random_list(:,2), numRatings'];
 
-fake_ratings = num2cell(randi(10,[1,50])-1)';
+fake_ratings = num2cell(randi(10,[1,100])-1)';
 ftemp = [random_list(:,2),fake_ratings];
-
 
 folders_used = cell(length(folder_names),1);
 % This loop extracts the ratings for each image type since the images were randomized
@@ -313,16 +298,15 @@ for i = 1:length(folder_names)
         end
     end
     sorted_ratings{i,1} = tmp; %#ok<SAGROW>
-    sorted_ratings{i,2} = mean(tmp,2); %#ok<SAGROW> 
-    sorted_ratings{i,3} = min(tmp,[],2); %#ok<SAGROW> 
-    sorted_ratings{i,4} = max(tmp,[],2); %#ok<SAGROW> 
+    sorted_ratings{i,2} = mean(tmp,2); %#ok<SAGROW>
+    sorted_ratings{i,3} = min(tmp,[],2); %#ok<SAGROW>
+    sorted_ratings{i,4} = max(tmp,[],2); %#ok<SAGROW>
 
     folders_used{i,1} = folder_names(i).name;
-
 end
 
 % Create data struct to store the task variables
-data.MRIonset = mri_onset;
+% data.MRIonset = mri_onset;
 data.numberRating = numRatings;
 data.RT = RT;
 data.CuesTypes = folders_used;
@@ -331,14 +315,17 @@ data.weights = [sorted_ratings{:,2}]'./sum([sorted_ratings{:,2}]);
 data.min_weights = [sorted_ratings{:,3}]';
 data.max_weights = [sorted_ratings{:,4}]';
 data.save_time = datestr(now,'mm-dd-yyyy_HH:MM:SS');
-data.random_list = random_list;
+data.random_list = [random_list,numRating'];
 
-% Change directories and save task variables in correct location
-cd(config.data)
-mkdir(subjectID)
-cd(subjectID)
-save_name = [subjectID '_' sessionNum, '_', datestr(now,'mm_dd_yyyy'),'.mat'];
+% Save name to 
+save_name = [config.data '\' subjectID '_' sessionNum, '_', datestr(now,'mm_dd_yyyy'),'.mat'];
 save(save_name,'data')
+
+disp(['Saving participant data now'])
+
+figure
+bar(data.weights)
+xticklabels(folders_used)
 cd(config.root)
 
 %% Extras
@@ -348,3 +335,7 @@ cd(config.root)
 
 % Useful if the images are presented in order
 % ratings = cell2mat(reshape(ftemp(:,2),[10,5]));
+
+%% NOTE
+% Load weights from data/subjectID/subjectID_training_xx_xx_2022.mat into 
+% Cue Reactivity. Will need to randomize image selection at runtime 

@@ -1,16 +1,20 @@
+function list = image_list_gen_training(subjectID, noExposure)
 % Script to generate img_list for OUD Cue Reactivity Training Task
 % Will randomly select mulitiple images from each drug folder to present in
 % the training session. Task will last approximately 5 mins so roughly 50
 % images will be presented.
 % --------------------------------------------------------------------------
-clear; clc;
-Config_CR;
+config = Config_Training(subjectID);
 cd(config.cues)
 
-% change save_string to dave different image lists
 % -------------------------------------------------------------------------
-save_string1 = 'OUD_CR_Training_List.mat';
-save_string2 = 'OUD_CR_Training_Cue_Names.mat';
+% change save_string to save different image lists
+
+save_string1 = [subjectID '_Training_List_' datestr(now,'mm_dd_yyyy'), '_' num2str(length(dir(config.load_files))/2)  '.mat'];
+save_string2 = [subjectID '_Training_Cues_' datestr(now,'mm_dd_yyyy'), '_' num2str(length(dir(config.load_files))/2)  '.mat'];
+
+% save_string1 = ['OUD_CR_' subjectID '_List_' datestr(now,'mm_dd_yyyy'), '_' num2str(length(dir(config.load_files))/2)  '.mat']
+% save_string2 = ['OUD_CR_' subjectID '_Cues_Names_' datestr(now,'mm_dd_yyyy'), '_' num2str(length(dir(config.load_files))/2)  '.mat']
 % -------------------------------------------------------------------------
 
 % Parameters pulled from config file
@@ -22,6 +26,7 @@ total_task_duration = config.total_training_duration;
 folderNames = dir(config.cues);
 % Remove extra directories
 folderNames(contains({folderNames.name},'.')) = [];
+folderNames(ismember({folderNames.name},noExposure)) = [];
 
 % Assuming even respresentation from each folder. Calculate the number of images to pull from each folder.
 % If this number isnt an integer then round up.
@@ -44,7 +49,7 @@ for i = 1:length(folderNames)
 
     % store path to selected images
     for j = 1:num_images
-        image_paths{i,j} = {[pwd '\' tmp_dir(temp(j)).name],folderNames(i).name}; %#ok<SAGROW>
+        image_paths{i,j} = {[pwd '\' tmp_dir(temp(j)).name],folderNames(i).name}; %#ok<*AGROW>
         %         img_storage{i,j} = imread(img_paths{i,j}); %#ok<SAGROW>
     end
     cd ../
@@ -56,15 +61,18 @@ image_paths = reshape(image_paths,i*j,1);
 % from. Easier to grab this way now instead of from the path later.
 img_tmp = image_paths{1};
 for i = 2:length(image_paths)
-    img_tmp = [img_tmp; image_paths{i}]; %#ok<AGROW>
+    img_tmp = [img_tmp; image_paths{i}];
 end
 image_paths = img_tmp;
 
-% Adjust save location to be in Lib
-save([config.lib '\' save_string1], 'image_paths')
+% Adjust save location to Load Files
+save([config.load_files '\' save_string1], 'image_paths')
 
 % Also save the name of the Drug folders being used
-save([config.lib '\' save_string2], 'folderNames')
+save([config.load_files '\' save_string2], 'folderNames')
 
 % Return to root directory
 cd(config.root)
+
+list = image_paths;
+end
