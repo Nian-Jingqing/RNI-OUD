@@ -12,8 +12,8 @@ KbName('UnifyKeyNames');
 %% Subject ID and Session Number should be changed every time the task is ran
 % -------------------------------------------------------------------------
 subjectID = 'test';
-sessionNum = 'training';
-fetchNewImages = 0;
+sessionNum = 'CR1';
+
 % -------------------------------------------------------------------------
 %% Pre-Task setup ---------------------------------------------------------
 % Call Config_Training.m to set path variables
@@ -21,30 +21,26 @@ config = Config_Training(subjectID);
 cd(config.root)
 
 % Add Library and Drug Cues to path
-addpath(config.lib);
-addpath(config.cues);
-addpath(config.data);
+addpath(config.lib);    addpath(config.cues);   addpath(config.data);
 
 tmp_dir = dir(config.data);
 tmp_dir(ismember({tmp_dir.name},{'.','..'})) = [];
+tmp_dir(~contains({tmp_dir.name},'.mat')) = [];
 
 disp(['Loading ' tmp_dir(1).name])
 temp = load(tmp_dir(1).name); temp = temp.data;
 
 weights = temp.weights;
 cues = temp.CuesTypes;
+folder_names = cues;
 
 % Fetch new image list depending on the input list arguement
 list = image_list_gen_CR(subjectID, weights, cues);
 [preloaded_images, random_list] = preload_CR_images(list);
 
-% Fetch the directory of drugs to get the folder names for later
-folder_names = cues;
-% folder_names = folder_names.folderNames;
-
 % Get total number of images
 numImgs = length(list);
-numImgs = 10;
+numImgs = 5;
 
 % Load the Craving Rating Scale and resize
 craving_scale = imread([config.rating_scales, '\', 'Slide1.jpeg']);

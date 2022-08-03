@@ -1,4 +1,4 @@
-function list = image_list_gen_training(subjectID, noExposure)
+function [list, folderNames] = image_list_gen_training(subjectID, noExposure)
 % Script to generate img_list for OUD Cue Reactivity Training Task
 % Will randomly select mulitiple images from each drug folder to present in
 % the training session. Task will last approximately 5 mins so roughly 50
@@ -18,19 +18,19 @@ save_string2 = [subjectID '_Training_Cues_' datestr(now,'mm_dd_yyyy'), '_' num2s
 % -------------------------------------------------------------------------
 
 % Parameters pulled from config file
-image_duration = config.image_duration;
-response_duration = config.response_duration;
-total_task_duration = config.total_training_duration;
+% config.image_duration, config.response_duration, config.total_training_duration
 
 % Get drug folder names
 folderNames = dir(config.cues);
+% Remove neutrals from considered categories
+noExposure{end+1} = 'Neutral';
 % Remove extra directories
 folderNames(contains({folderNames.name},'.')) = [];
 folderNames(ismember({folderNames.name},noExposure)) = [];
 
 % Assuming even respresentation from each folder. Calculate the number of images to pull from each folder.
 % If this number isnt an integer then round up.
-num_images = ceil((total_task_duration/(image_duration+response_duration))/length(folderNames));
+num_images = ceil((config.total_training_duration/(config.image_duration+config.response_duration))/length(folderNames));
 
 % Going to store paths and images so we can preload the images before the task
 image_paths = {};
