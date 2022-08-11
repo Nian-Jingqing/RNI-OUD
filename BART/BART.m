@@ -1,15 +1,15 @@
-% function [] = flanker(subjectID,taskType)
-% Main Script for flanker
-% written June 2022 Jacob Suffridge
+% function [] = BART(subjectID)
+% Main Script for BART
+% written August 2022 Jacob Suffridge
 % subjectID must be a string, EX: subjectID = '1234';
-% taskType can be switched between 0 and 2 back
 
 clc;
 subjectID = 'jacob';
+
 % Define the base and data paths
-basePath = 'C:\Users\jesuffridge\Documents\MATLAB\Projects\RNI-OUD';
-dataPath = 'C:\Users\jesuffridge\Documents\MATLAB\Projects\RNI-OUD\F Data';
-targetPath = 'C:\Users\jesuffridge\Documents\MATLAB\Projects\RNI-OUD\Flanker_Targets\';
+basePath = '/home/helpdesk/Documents/MATLAB/RNI-OUD/BART/';
+dataPath = [basePath, 'BART Data/'];
+targetPath = [basePath, 'BART_Targets/'];
 
 % Create save directory in DD data folder
 cd(dataPath)
@@ -17,7 +17,7 @@ mkdir(subjectID)
 cd(basePath)
 
 % Create string to save the data later
-saveName = [dataPath, '\' subjectID, '\' subjectID '_N_Back_' , datestr(now,'mm_dd_yyyy') '.mat'];
+saveName = [dataPath, '/' subjectID, '/' subjectID '_BART_' , datestr(now,'mm_dd_yyyy') '.mat'];
 
 %% Parameters to Adjust
 textSize = 60;
@@ -39,7 +39,7 @@ PsychDefaultSetup(2);
 Screen('Preference', 'ConserveVRAM', 4096);
 % Screen('Preference','VBLTimestampingMode',-1);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-Screen('Preference','SkipSyncTests', 1);
+Screen('Preference','SkipSyncTests', 0);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 Screen('Preference','VisualDebugLevel', 0);
 % Get the screen numbers
@@ -63,13 +63,29 @@ Screen('BlendFunction', w, 'GL_SRC_ALPHA', 'GL_ONE_MINUS_SRC_ALPHA');
 [screenXpixels, screenYpixels] = Screen('WindowSize', w);
 
 % Load the target patterns into memory
-target1 = imread([targetPath, 'Target1.bmp']);
-target2 = imread([targetPath, 'Target2.bmp']);
-target3 = imread([targetPath, 'Target3.bmp']);
-target4 = imread([targetPath, 'Target4.bmp']);
-target5 = imread([targetPath, 'Target5.bmp']);
-target6 = imread([targetPath, 'Target6.bmp']);
+scale_factor = 1.75;
+target1 = imresize(imread([targetPath, 'Target1.bmp']), scale_factor);
+target2 = imresize(imread([targetPath, 'Target2.bmp']), scale_factor);
+target3 = imresize(imread([targetPath, 'Target3.bmp']), scale_factor);
+target4 = imresize(imread([targetPath, 'Target4.bmp']), scale_factor);
+target5 = imresize(imread([targetPath, 'Target5.bmp']), scale_factor);
+target6 = imresize(imread([targetPath, 'Target6.bmp']), scale_factor);
 
+% Create pseudo random listing to call flanker targets
+target_list = [];
+num_trials = 60;
+for i = 1:6
+    C    = cell(1, num_trials/6);
+    C(:) = {['target', num2str(i)]};
+    target_list = [target_list; C]; %#ok<AGROW>
+end
+target_list = reshape(target_list, num_trials, []);
+target_list = target_list(randperm(num_trials));
+
+target_imgs = cell(size(target_list));
+for i = 1:num_trials
+    target_imgs{i} = eval(target_list{i});
+end 
 %% Instruction Set 1
 % Create screen for first set of instructions
 Screen('TextStyle',w, 1);
@@ -142,66 +158,65 @@ initialFixationOnset = Screen('Flip', w);
 WaitSecs(baseFixationTime);
 
 %% Task
+num_trials = length(target_list);
 % Allocate space to store ratings and reaction times
-% ratings = cell(length(list), length(list{1}));
-% RT = cell(length(list), length(list{1}));
+ratings = cell(num_trials, 1);
+RT = cell(num_trials, 1);
 
-% Loop through the different time points
-for j = 1
+% Loop through the predefined presentation list
+for i = 1:num_trials
     
-    % Loop through the predefined presentation list
-    for i = 1
+    % Pull target for current iteration
+    tmp_target = target_imgs{i};
 
-        % Draw text on center of the screen
-%         DrawFormattedText(w, target1, 'center', 'center', black, [], 0, 0);
-        Screen('PutImage', w, target1);
-        % Flip everything to the screen
-        Screen('Flip', w);
-
-        % Have to wait to prevent CPU hogging
-        WaitSecs(0.0001);
-
-        % Waiting for participant response
-        timedOut = 0;
-        tStart = GetSecs;
-        while ~timedOut
-            % check if a specified key is pressed
-            [ keyIsDown, keyTime, keyCode ] = KbCheck;
-            if(keyIsDown), break; end
-            if( (keyTime - tStart) > time2wait)
-                timedOut = true;
-            end
-        end
-
-        % Records Reaction Time and Response Key
-        if (~timedOut)
-            RT{j,i} = keyTime - tStart;
-            ratings{j,i} = KbName(find(keyCode));
-        else
-            RT{j,i} = 100;
-            ratings{j,i} = [];
-        end
-
-        % Show Fixation Screen (RT+fixation time = time2wait seconds)
-        Screen('TextStyle',w, 1);
-        Screen('TextSize',w, 250);
-        Screen('TextFont',w, 'Arial');
-        DrawFormattedText(w, '+','center', 'center', black,[],0,0);
-        Screen('Flip', w);
-        WaitSecs(time2wait - RT{j,i});
-
-    end
-
-    %% Inter Trial Fixation 
-    Screen('TextStyle',w,1);
-    Screen('TextSize',w,fixSize);
-    Screen('TextFont',w,'Arial');
-    DrawFormattedText(w,'+','center', 'center', black,[],0,0);
-    % Get timestamp for Initial fixation to determine remaining duration
+    % Draw target on center of the screen
+    Screen('PutImage', w, tmp_target);
+    % Flip everything to the screen
     Screen('Flip', w);
 
-    WaitSecs(InterTrialFixationTime);
+    % Have to wait to prevent CPU hogging
+    WaitSecs(0.0001);
+
+    % Waiting for participant response
+    timedOut = 0;
+    tStart = GetSecs;
+    while ~timedOut
+        % check if a specified key is pressed
+        [ keyIsDown, keyTime, keyCode ] = KbCheck;
+        if(keyIsDown), break; end
+        if( (keyTime - tStart) > time2wait)
+            timedOut = true;
+        end
+    end
+
+    % Records Reaction Time and Response Key
+    if (~timedOut)
+        RT{i} = keyTime - tStart;
+        ratings{i} = KbName(find(keyCode));
+    else
+        RT{i} = nan;
+        ratings{i} = [];
+    end
+
+    % Show Fixation Screen (RT+fixation time = time2wait seconds)
+    Screen('TextStyle',w, 1);
+    Screen('TextSize',w, 250);
+    Screen('TextFont',w, 'Arial');
+    DrawFormattedText(w, '+','center', 'center', black,[],0,0);
+    Screen('Flip', w);
+    WaitSecs(time2wait - RT{i});
+
 end
+
+%% Inter Trial Fixation
+% Screen('TextStyle',w,1);
+% Screen('TextSize',w,fixSize);
+% Screen('TextFont',w,'Arial');
+% DrawFormattedText(w,'+','center', 'center', black,[],0,0);
+% % Get timestamp for Initial fixation to determine remaining duration
+% Screen('Flip', w);
+% 
+% WaitSecs(InterTrialFixationTime);
 sca;
 
 %% Post-Task

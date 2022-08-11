@@ -4,7 +4,7 @@ function [list, folderNames] = image_list_gen_training(subjectID, noExposure)
 % the training session. Task will last approximately 5 mins so roughly 50
 % images will be presented.
 % --------------------------------------------------------------------------
-config = Config_Training(subjectID);
+config = Config_CR(subjectID);
 cd(config.cues)
 
 % -------------------------------------------------------------------------
@@ -49,7 +49,7 @@ for i = 1:length(folderNames)
 
     % store path to selected images
     for j = 1:num_images
-        image_paths{i,j} = {[pwd '\' tmp_dir(temp(j)).name],folderNames(i).name}; %#ok<*AGROW>
+        image_paths{i,j} = {[pwd '/' tmp_dir(temp(j)).name],folderNames(i).name}; %#ok<*AGROW>
         %         img_storage{i,j} = imread(img_paths{i,j}); %#ok<SAGROW>
     end
     cd ../
@@ -66,10 +66,10 @@ end
 image_paths = img_tmp;
 
 % Adjust save location to Load Files
-save([config.load_files '\' save_string1], 'image_paths')
+save([config.load_files '/' save_string1], 'image_paths')
 
 % Also save the name of the Drug folders being used
-save([config.load_files '\' save_string2], 'folderNames')
+save([config.load_files '/' save_string2], 'folderNames')
 
 % Return to root directory
 cd(config.root)

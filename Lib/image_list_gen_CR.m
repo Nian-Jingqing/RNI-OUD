@@ -3,7 +3,7 @@ function [img_list] = image_list_gen_CR(subjectID, weights, cues)
 % Will create image list using the weights and cue types that were input to
 % the function
 % --------------------------------------------------------------------------
-config = Config_Training(subjectID);
+config = Config_CR(subjectID);
 cd(config.cues)
 
 %% Create active image list------------------------------------------------
@@ -40,7 +40,7 @@ for i = 1:length(folderNames)
 
     % store path to selected images
     for j = 1:num_images(i)
-        image_paths{i,j} = {[pwd '\' tmp_dir(temp(j)).name],folderNames{i}}; %#ok<*AGROW>
+        image_paths{i,j} = {[pwd '/' tmp_dir(temp(j)).name],folderNames{i}}; %#ok<*AGROW>
         %         img_storage{i,j} = imread(img_paths{i,j}); %#ok<SAGROW>
     end
     cd ../
@@ -57,10 +57,10 @@ end
 image_paths = img_tmp;
 
 % Adjust save location to Load Files
-save([config.load_files '\' save_string1], 'image_paths')
+save([config.load_files '/' save_string1], 'image_paths')
 
 % Also save the name of the Drug folders being used
-save([config.load_files '\' save_string2], 'folderNames')
+save([config.load_files '/' save_string2], 'folderNames')
 
 list_active = image_paths;
 list_active_sorted = sortrows(list_active,2);
@@ -68,7 +68,7 @@ list_active_sorted = sortrows(list_active,2);
 clear image_paths
 %% Create neutral image list-----------------------------------------------
 % Move into Neutral folder
-cd([config.cues, '\Neutral\']);
+cd([config.cues, '/Neutral/']);
 tmp_dir = dir();
 % Remove unusable directories
 tmp_dir(ismember({tmp_dir.name},{'.','..'})) = [];
@@ -80,7 +80,7 @@ temp = temp(1:50);
 
 % store path to selected images
 for j = 1:length(temp)
-    image_paths{j,1} = [pwd '\' tmp_dir(temp(j)).name];
+    image_paths{j,1} = [pwd '/' tmp_dir(temp(j)).name];
     image_paths{j,2} = 'Neutral'; %#ok<*AGROW>
     %         img_storage{i,j} = imread(img_paths{i,j}); %#ok<SAGROW>
 end

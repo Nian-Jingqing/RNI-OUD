@@ -8,8 +8,13 @@ function data = Training(subjectID, noExposure)
 % ---- Jacob Suffridge May 2022
 % ---- Last Edited July 28th
 %
+% Updated August 10th 2022
+% Modify input methods to use keys across the top of the keyboard instead
+% of the numpad
+% 
+% 
 % Script Dependencies:
-% Config_Training.m, image_list_gen_training.m, preload_training_images.m
+% Config_CR.m, image_list_gen_training.m, preload_training_images.m
 %
 % Config Parameters:
 % config.textSize, config.fixSize, config.image_duration, config.baseFixation_duration
@@ -20,15 +25,17 @@ function data = Training(subjectID, noExposure)
 % 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 sessionNum = 'training';
-list_load_path = 'C:\Users\jesuffridge\Documents\MATLAB\Projects\RNI-OUD\Training_Cue_List.mat';
 
 %% Pre-Task setup ---------------------------------------------------------
 % Add path to lib to initialize Config_Training function
-addpath('C:\Users\jesuffridge\Documents\MATLAB\Projects\RNI-OUD\Lib');
+addpath('/home/helpdesk/Documents/MATLAB/RNI-OUD/Lib');
 
 % Call Config_Training.m to set path variables
 config = Config_CR(subjectID);
 cd(config.root)
+
+% Path to load the training cue list
+list_load_path = [config.root, '/Training_Cue_List.mat'];
 
 % Add Library and Drug Cues to path
 addpath(config.lib);
@@ -36,9 +43,10 @@ addpath(config.cues);
 KbName('UnifyKeyNames');
 
 % Numpad : Add extra line to take input from numpad and num keys across top of keyboard
-activeKeys = [KbName(96) KbName(97) KbName(98) KbName(99) KbName(100) KbName(101) KbName(102) KbName(103) KbName(104) KbName(105)]; % keys: 0,1,2,3,4,5,6,7,8,9
-activeKeys = [activeKeys KbName('0') KbName('1') KbName('2') KbName('3') KbName('4') KbName('5') KbName('6') KbName('7') KbName('8') KbName('9')];
- 
+% activeKeys = [KbName(96) KbName(97) KbName(98) KbName(99) KbName(100) KbName(101) KbName(102) KbName(103) KbName(104) KbName(105)]; % keys: 0,1,2,3,4,5,6,7,8,9
+% activeKeys = [activeKeys KbName('0') KbName('1') KbName('2') KbName('3') KbName('4') KbName('5') KbName('6') KbName('7') KbName('8') KbName('9')];
+%  
+activeKeys = [KbName('1!'),KbName('2@'),KbName('3#'),KbName('4$'),KbName('5%'),KbName('6^'),KbName('7&'),KbName('8*'),KbName('9(')];
 RestrictKeysForKbCheck(activeKeys);
 %% Adjustable Parameters
 % Strings for Instruction Screens
@@ -49,12 +57,13 @@ ScreenInstruct3 = 'When presented with a "+" please rest with your \n\n eyes ope
 %% Screen Setup
 % Call some default settings for setting up Psychtoolbox
 PsychDefaultSetup(2);
+% PsychJavaTrouble(1);
 
 % Initialize screen preferences
 Screen('Preference', 'ConserveVRAM', 4096);
 % Screen('Preference','VBLTimestampingMode',-1);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-Screen('Preference','SkipSyncTests', 1);
+Screen('Preference','SkipSyncTests', 0);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 Screen('Preference','VisualDebugLevel', 0);
 % Get the screen numbers
@@ -78,7 +87,7 @@ ifi = Screen('GetFlipInterval', w);
 [screenXpixels, screenYpixels] = Screen('WindowSize', w);
 
 % Load the Craving Rating Scalesca
-craving_scales = load([config.rating_scales, '\craving_scales.mat']).craving_scales;
+craving_scales = load([config.rating_scales, '/craving_scales.mat']).craving_scales;
 for i = 1:length(craving_scales)
     craving_scales{i} = imresize(craving_scales{i},[screenYpixels,screenXpixels]);
 end
@@ -92,7 +101,7 @@ base_rating = craving_scales{end};
 
 % Get total number of images (Can set a low number for debugging)
 numImgs = length(list);
-numImgs = 5;
+% numImgs = 5;
 
 % Initialize storage for task information and timestamps
 RT = cell(1,numImgs);
@@ -159,7 +168,7 @@ DrawFormattedText(w,'+','center', 'center', black,[],0,0);
 
 % Get timestamp for Initial fixation to determine remaining duration
 initialFixationOnset = Screen('Flip', w);
-WaitSecs(config.baseFixation_duration)
+WaitSecs(config.baseFixation_duration);
 
 %% Start of Image Presentation
 for j = 1:numImgs
@@ -168,7 +177,7 @@ for j = 1:numImgs
     img_starts{j} = Screen('Flip',w);
 
     % Allow the image to be on screen for x seconds
-    WaitSecs(config.image_duration)
+    WaitSecs(config.image_duration);
 
     % Draw the rating screen
     Screen('PutImage', w, base_rating);
@@ -202,7 +211,7 @@ for j = 1:numImgs
 
     % Allow the image to be on screen for x seconds
     %     WaitSecs(config.feedback_duration - RT{j})
-    WaitSecs(0.5)
+    WaitSecs(0.5);
 end
 % Clear screen at the end of the task
 sca;
@@ -239,20 +248,7 @@ data.CuesTypes = folders_used;
 data.weights = [sorted_ratings{:,2}]'./sum([sorted_ratings{:,2}]);
 data.min_weights = [sorted_ratings{:,3}]';
 data.max_weights = [sorted_ratings{:,4}]';
-data.save_time = datestr(now,'mm-dd-yyyy_HH:MM:SS');
-data.random_list = ftemp;
-data.excludedCues = noExposure;
-data.config = config;
-data.img_starts = img_starts;
-data.rating_starts = rating_starts;
-
-% Save name to
-save([config.data '\' subjectID '_' sessionNum, '_', datestr(now,'mm_dd_yyyy__HH_MM_SS'),'.mat'],'data');
-disp('Saving participant data')
-
-figure
-bar(data.weights)
-xticklabels(folders_used)
+data.save_time = datestr(now,'mm-dd-yyyy_HH:MM:SS');Bxticklabels(folders_used)
 cd(config.root)
 
 end

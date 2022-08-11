@@ -3,7 +3,7 @@ function [] = Cue_Reactivity_MRI(subjectID,sessionNum,taskType)
 % written June 2022 Jacob Suffridge
 % 
 % Script Dependencies:
-% Config_Training.m, image_list_gen_CR.m, preload_CR_images.m
+% Config_CR.m, image_list_gen_CR.m, preload_CR_images.m
 % 
 % Example Inputs:
 % subjectID = 'test';

@@ -3,14 +3,18 @@ function data = Cue_Reactivity_MRI_slider(subjectID,sessionNum,taskType)
 % pre/post block sliders
 %
 % ---J Suffridge July 2022
-% --- Last edited July 28th
-%
+% 
+% Updated August 10th 2022
+% Started adding report generating functionality to the post task process. 
+% 
+% 
+% 
 % Script Dependencies:
-% Config_Training.m, image_list_gen_CR.m, preload_CR_images.m
+% Config_CR.m, image_list_gen_CR.m, preload_CR_images.m
 %
 % Config Parameters:
 % config.textSize, config.fixSize, config.image_duration, config.interTrial_duration,
-% config.baseFixation_duration, config.slider_duration
+% config.baseFixation_duration, config.slider_durationei
 %
 % Example Inputs:
 % subjectID = 'Cody';
@@ -19,7 +23,7 @@ function data = Cue_Reactivity_MRI_slider(subjectID,sessionNum,taskType)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Add path to lib to initialize Config_Training function
-addpath('C:\Users\jesuffridge\Documents\MATLAB\Projects\RNI-OUD\Lib');
+addpath('/home/helpdesk/Documents/MATLAB/RNI-OUD/Lib');
 
 % Initialize config and add paths
 config = Config_CR(subjectID);
@@ -54,7 +58,7 @@ Screen('Preference', 'ConserveVRAM', 4096);
 % Screen('Preference','VBLTimestampingMode',-1);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-Screen('Preference','SkipSyncTests', 1);
+Screen('Preference','SkipSyncTests', 0);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 Screen('Preference','VisualDebugLevel', 0);
@@ -76,7 +80,7 @@ Screen('BlendFunction', w, 'GL_SRC_ALPHA', 'GL_ONE_MINUS_SRC_ALPHA');
 [screenXpixels, screenYpixels] = Screen('WindowSize', w);
 
 %% Load the Craving Rating Scales (After Screen calls to set screen dims automatically)
-craving_scales = load([config.rating_scales, '\craving_scales.mat']).craving_scales;
+craving_scales = load([config.rating_scales, '/craving_scales.mat']).craving_scales;
 for i = 1:length(craving_scales)
     craving_scales{i} = imresize(craving_scales{i},[screenYpixels,screenXpixels]);
 end
@@ -232,6 +236,7 @@ initialFixationOnset = Screen('Flip', w);
 % Show the base fixation for var seconds
 WaitSecs(config.baseFixation_duration);
 
+ListenChar(2)
 for i = 1 %:numBlocks
     %% Pre-block slider
     block_start = GetSecs;
@@ -239,7 +244,7 @@ for i = 1 %:numBlocks
     str = [];
     slider_count_pre = 0;
     pre_break = nan;
-
+   
     % Draw the base rating screen
     Screen('PutImage', w, base_rating);
     Screen('Flip', w);
@@ -283,6 +288,7 @@ for i = 1 %:numBlocks
             slider_count_pre = 0;
         end
     end
+
     % Save the pre-block craving rating
     pre_block = [pre_block; slider_count_pre];  %#ok<*AGROW>
     pre_RT = [pre_RT; pre_break - block_start];
@@ -373,23 +379,25 @@ end
 time = GetSecs - mri_onset;
 % Clear screen at the end of the task
 sca;
+ListenChar(0)
 
 %% Save Task Variables
 % Create a new data struct to store the task variables
-clear data
-data.MRIonset = mri_onset;
+Data.MRIonset = mri_onset;
 % Slider Ratings from before and after each block
-data.preBlockRatings = pre_block;
-data.postBlockRatings = post_block;
+Data.preBlockRatings = pre_block;
+Data.postBlockRatings = post_block;
 % Slider Reaction Times from before and after each block
-data.preBlockRT = pre_RT;
-data.postBlockRT = post_RT;
+Data.preBlockRT = pre_RT;
+Data.postBlockRT = post_RT;
+Data.save_time = datestr(now,'mm-dd-yyyy_HH:MM:SS');
 
 % Change directories and save task variables in correct location
 cd(config.data)
 mkdir('CR MRI')
 cd('CR MRI')
-save(save_name,'data')
+save(save_name,'Data')
 cd(config.root)
 
+CR_MRI_report_generator(data,Data,subjectID);
 end

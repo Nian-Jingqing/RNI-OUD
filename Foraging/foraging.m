@@ -5,9 +5,10 @@
 % -------------------------------------------------------------------------
 subjectID = 'jacob';
 % Define the base and data paths
-basePath = 'C:\Users\jesuffridge\Documents\MATLAB\Projects\RNI-OUD';
-dataPath = 'C:\Users\jesuffridge\Documents\MATLAB\Projects\RNI-OUD\VF Data';
-imgPath = 'C:\Users\jesuffridge\Documents\MATLAB\Projects\RNI-OUD\Foraging_targets\';
+
+basePath = '/home/helpdesk/Documents/MATLAB/RNI-OUD/Foraging/';
+dataPath = [basePath, 'Foraging Data/'];
+imgPath = [basePath, 'Foraging_targets/'];
 
 % Create save directory in DD data folder
 cd(dataPath)
@@ -15,7 +16,7 @@ mkdir(subjectID)
 cd(basePath)
 
 % Create string to save the data later
-saveName = [dataPath, '\' subjectID, '\' subjectID '_Virtual_Foraging_' , datestr(now,'mm_dd_yyyy') '.mat'];
+saveName = [dataPath, '/' subjectID, '/' subjectID '_Virtual_Foraging_' , datestr(now,'mm_dd_yyyy') '.mat'];
 
 %% Parameters to Adjust
 harvestDelay = 0.5;
@@ -40,7 +41,7 @@ PsychDefaultSetup(2);
 Screen('Preference', 'ConserveVRAM', 4096);
 % Screen('Preference','VBLTimestampingMode',-1);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-Screen('Preference','SkipSyncTests', 1);
+Screen('Preference','SkipSyncTests', 0);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 Screen('Preference','VisualDebugLevel', 0);
 % Get the screen numbers
@@ -67,7 +68,7 @@ Screen('BlendFunction', w, 'GL_SRC_ALPHA', 'GL_ONE_MINUS_SRC_ALPHA');
 img = cell(1,7);
 for i = 1:6
     for j = 1:10
-        img{j,i} = imresize(imread([imgPath 'Slide' num2str(i) '.jpg']),[screenYpixels/j,screenXpixels/j]);
+        img{j,i} = imresize(imread([imgPath 'Slide' num2str(i) '.JPG']),[screenYpixels/j,screenXpixels/j]);
     end
 end
 empty_tree = imresize(imread([imgPath 'Slide0.jpg']),[screenYpixels,screenXpixels]);
@@ -188,7 +189,7 @@ for i = 1:length(numApples)-1 % number of apples will be random
     Screen('TextSize',w,textSize);
     Screen('TextFont',w,'Arial');
     Screen('PutImage', w, img{1,tmp});
-    Screen('DrawTexture', w, img{5,tmp}, [], screenXpixels*.01, screenYpixels*.9, [], [], [], []);
+%     Screen('DrawTexture', w, img{5,tmp}, [], screenXpixels*.01, screenYpixels*.9, [], [], [], []);
 
     % Draw Instructions on the bottom left/right of screen
     DrawFormattedText(w,' Collect Apple \n Press 1 button',screenXpixels*.01, screenYpixels*.9, black, [], 0, 0);
