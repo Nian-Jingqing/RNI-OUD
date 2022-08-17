@@ -5,15 +5,17 @@ clc;
 
 % Define the base and data paths
 basePath = '/home/helpdesk/Documents/MATLAB/RNI-OUD/Delay Discounting/';
-dataPath = [basePath, 'Delay Discounting Data'];
+dataPath = [basePath, 'Delay Discounting Data/'];
 
-% Create save directory in DD data folder
+% Create save directory in "Delay Discounting data" folder
 cd(dataPath)
-mkdir(subjectID)
+if not(isfolder(subjectID))
+    mkdir(subjectID)
+end
 cd(basePath)
 
 % Create string to save the data later
-saveName = [dataPath, '/' subjectID, '/' subjectID '_Delay_Discounting_' , datestr(now,'mm_dd_yyyy') '.mat'];
+saveName = [dataPath, subjectID, '/' subjectID '_Delay_Discounting_' , datestr(now,'mm_dd_yyyy') '.mat'];
 
 %% Parameters to Adjust
 num_choices = 12;
@@ -152,8 +154,10 @@ initialFixationOnset = Screen('Flip', w);
 WaitSecs(baseFixationTime);
 
 %% Task
+% Suppress keyboard echo to command window
+ListenChar(2)
 % Loop through the different time points
-for j = length(time_points)
+for j = 1 %:length(time_points)
     % Restart the task at $1000, allocate space for tracker, counter, switch_tag
     tmp = 1000;
     % Tracker records impulsive decisions made
@@ -263,6 +267,8 @@ for j = length(time_points)
 
     WaitSecs(InterTrialFixationTime);
 end
+% Renable the keyboard echo and screen clear all
+ListenChar();
 sca;
 
 %% Post-Task

@@ -1,12 +1,10 @@
-function [] = BART(subjectID)
+% function [] = BART(subjectID)
 % Main Script for BART
 % written August 2022 Jacob Suffridge
 % subjectID must be a string, EX: subjectID = '1234';
 
-% clc;
-% subjectID = 'jacob';
-% Shift focus to the command window 
-commandwindow
+clc;
+subjectID = 'jacob';
 
 % Define the base path, data path and the path to BART target images
 basePath = '/home/helpdesk/Documents/MATLAB/RNI-OUD/BART/';
@@ -15,24 +13,22 @@ targetPath = [basePath, 'BART Targets/'];
 
 % Create save directory in "BART Data" folder
 cd(dataPath)
-if not(isfolder(subjectID))
-    mkdir(subjectID)
-end
+mkdir(subjectID)
 cd(basePath)
 
 % Create string to save the data later
-saveName = [dataPath, subjectID, '/' subjectID '_BART_' , datestr(now,'mm_dd_yyyy') '.mat'];
+saveName = [dataPath, '/' subjectID, '/' subjectID '_BART_' , datestr(now,'mm_dd_yyyy') '.mat'];
 
 %% Parameters to Adjust
 %--- Started 8/11
-numTrials = 1;
+numTrials = 2;
 timeToWatchPopped = 3;
 minPressLimit = 20;
 maxPressLimit = 50;
 activeKeys = [KbName('a'),KbName('b')];
 %---
 
-textSize = 50;
+textSize = 60;
 fixSize = 250;
 time2wait = 1.2;
 
@@ -40,8 +36,8 @@ initialFixationTime = 2;
 InterTrialFixationTime = 2;   %14
 
 % Strings for Instruction Screens
-ScreenInstruct1 = 'In this task, you will be asked to pump up a balloon using the "a" button \n\n\n If you inflate the balloon too much it will explode! \n\n\n\n Press "a" to continue';
-ScreenInstruct2 = 'Inflate the balloon until you think its just about to pop \n\n then press the "b" button. \n\n\n The more you inflate the balloon, the more points you will recieve. \n\n\n\n Press the "b" button to continue';
+ScreenInstruct1 = 'In this task, you will be asked to pump up a balloon using the "b" button \n\n\n If you inflate the balloon too much it will explode'];
+ScreenInstruct2 = '';
 ScreenInstruct3 = 'Please wait for the MRI to start';
 
 %% Preload the Balloon Images
@@ -96,59 +92,65 @@ Screen('BlendFunction', w, 'GL_SRC_ALPHA', 'GL_ONE_MINUS_SRC_ALPHA');
 % Get the size of the on screen window
 [screenXpixels, screenYpixels] = Screen('WindowSize', w);
 
-%% Instruction Set 1
-% Create screen for first set of instructions
-Screen('TextStyle',w, 1);
-Screen('TextSize',w, textSize);
-Screen('TextFont',w, 'Arial');
-DrawFormattedText(w, ScreenInstruct1, 'center', 'center', black, [], 0, 0);
-Screen('Flip', w);
-
-str = []; %#ok<*NASGU>
-FlushEvents('KeyDown');
-% trigger release check for first instructions
-while 1
-    str = GetChar(0);
-    disp(str)
-    if strcmp(str,'a')
-        break;
-    end
-end
-
-%% Instruction Set 2
-% Create screen for second set of instructions
-DrawFormattedText(w,ScreenInstruct2,'center', 'center', black,[],0,0);
-Screen('Flip', w);
-
-str = []; %#ok<*NASGU>
-FlushEvents('KeyDown');
-% trigger release check for second instructions
-while 1
-    str = GetChar(0);
-    disp(str)
-    if strcmp(str,'b')
-        break;
-    end
-end
-
-%% Waiting for MRI Trigger
-% Set screen to wait for MRI trigger
-DrawFormattedText(w, ScreenInstruct3,'center', 'center', black,[],0,0);
-Screen('Flip', w);
-
-str = [];
-FlushEvents('KeyDown');
-% trigger release check
-while 1
-    str = GetChar(0);
-    disp(str);
-    if strcmp(str,'T')
-        mri_onset = GetSecs;
-        break;
-    end
-end
-disp('MRI Trigger received')
-clc;
+% %% Instruction Set 1
+% % Create screen for first set of instructions
+% Screen('TextStyle',w, 1);
+% Screen('TextSize',w, textSize);
+% Screen('TextFont',w, 'Arial');
+% DrawFormattedText(w, ScreenInstruct1, 'center', 'center', black, [], 0, 0);
+% Screen('Flip', w);
+%
+% str = []; %#ok<*NASGU>
+% FlushEvents('KeyDown');
+% % trigger release check for first instructions
+% while 1
+%     str = GetChar(0);
+%     disp(str)
+%     if strcmp(str,'a')
+%         break;
+%     end
+% end
+%
+% %% Instruction Set 2
+% % Create screen for second set of instructions
+% Screen('TextStyle',w,1);
+% Screen('TextSize',w,textSize);
+% Screen('TextFont',w,'Arial');
+% DrawFormattedText(w,ScreenInstruct2,'center', 'center', black,[],0,0);
+% Screen('Flip', w);
+%
+% str = []; %#ok<*NASGU>
+% FlushEvents('KeyDown');
+% % trigger release check for second instructions
+% while 1
+%     str = GetChar(0);
+%     disp(str)
+%     if strcmp(str,'b')
+%         break;
+%     end
+% end
+%
+% %% Waiting for MRI Trigger
+% % Set screen to wait for MRI trigger
+% Screen('TextStyle',w,1);
+% Screen('TextSize',w, textSize);
+% Screen('TextFont',w, 'Arial');
+% DrawFormattedText(w, ScreenInstruct3,'center', 'center', black,[],0,0);
+% Screen('Flip', w);
+%
+% str = [];
+% FlushEvents('KeyDown');
+% % trigger release check
+% while 1
+%     str = GetChar(0);
+%     disp(str);
+%     if strcmp(str,'T')
+%         mri_onset = GetSecs;
+%         break;
+%     end
+% end
+% disp('MRI Trigger received')
+% clc;
 
 %% Initial Fixation pre-Task
 % Format and Draw the onscreen fixation +
@@ -171,7 +173,7 @@ RT = cell(numTrials, 100);
 exitMsg = cell(numTrials,1);
 pointsEarned = cell(numTrials,1);
 
-% Suppress keyboard echo to command window
+% Suppress keyboard response to command window
 ListenChar(2)
 % Loop through the predefined presentation list
 for i = 1:numTrials
@@ -221,27 +223,23 @@ for i = 1:numTrials
         end
 
         % Handle the button presses
-        if strcmp(str,'b')
+        if strcmp(str,'a')
             % Record the points earned
-            pointsEarned{i} = 5*(j-1);
+            pointsEarned{i} = 5*j;
 
             % Record that the trial ended as "Quit Early"
             exitMsg{i} = 'Quit Early';
             DrawFormattedText(w,['You scored ', num2str(pointsEarned{i}), ' points'], 'center', screenYpixels*0.85, black,[],0,0);
             break;
 
-        elseif strcmp(str,'a') && j == currentThreshold
-            % Record the points earned
-            pointsEarned{i} = 0;
-
+        elseif strcmp(str,'b') && j == currentThreshold
             % Flip popped balloon image to the screen
             Screen('PutImage', w, poppedImgs{currentThreshold});
             DrawFormattedText(w, ['You scored ', num2str(pointsEarned{i}), ' points'], 'center', screenYpixels*0.85, black,[],0,0);
-            
             Screen('Flip',w);
+
             % Let the image stay on screen for timeToWatchPopped seconds
             WaitSecs(timeToWatchPopped);
-
             % Record that the trial ended as "Popped"
             exitMsg{i} = 'Popped';
         else
@@ -265,7 +263,7 @@ for i = 1:numTrials
 end
 
 % Renable the keyboard echo and screen clear all
-ListenChar();
+ListenChar(0);
 sca;
 
 %% Post-Task Proccess
@@ -279,4 +277,4 @@ data.totalPoints = sum([pointsEarned{:}]);
 % save data to BART Data >> subjectID
 save(saveName,'data')
 cd(basePath)
-end
+% end

@@ -1,23 +1,27 @@
-% function [] = flanker(subjectID)
+function [] = Flanker(subjectID)
 % Main Script for flanker
 % written June 2022 Jacob Suffridge
 % subjectID must be a string, EX: subjectID = '1234';
 
 clc;
-subjectID = 'jacob';
+% subjectID = 'jacob';
+
+% Shift focus to the command window 
+commandwindow
 
 % Define the base and data paths
 basePath = '/home/helpdesk/Documents/MATLAB/RNI-OUD/Flanker/';
 dataPath = [basePath, 'Flanker Data/'];
 targetPath = [basePath, 'Flanker Targets/'];
 
-% Create save directory in DD data folder
+% Create save directory in "Flanker Data" folder
 cd(dataPath)
-mkdir(subjectID)
+if not(isfolder(subjectID))
+    mkdir(subjectID)
+end
 cd(basePath)
-
 % Create string to save the data later
-saveName = [dataPath, '/' subjectID, '/' subjectID '_Flanker_' , datestr(now,'mm_dd_yyyy') '.mat'];
+saveName = [dataPath, subjectID, '/' subjectID '_Flanker_' , datestr(now,'mm_dd_yyyy') '.mat'];
 
 %% Parameters to Adjust
 textSize = 60;
@@ -158,11 +162,15 @@ initialFixationOnset = Screen('Flip', w);
 WaitSecs(baseFixationTime);
 
 %% Task
-num_trials = length(target_list);
+num_trials = 5;
+% num_trials = length(target_list);
+
 % Allocate space to store ratings and reaction times
 ratings = cell(num_trials, 1);
 RT = cell(num_trials, 1);
 
+% Suppress keyboard echo to command window
+ListenChar(2)
 % Loop through the predefined presentation list
 for i = 1:num_trials
     
@@ -208,15 +216,8 @@ for i = 1:num_trials
 
 end
 
-%% Inter Trial Fixation
-% Screen('TextStyle',w,1);
-% Screen('TextSize',w,fixSize);
-% Screen('TextFont',w,'Arial');
-% DrawFormattedText(w,'+','center', 'center', black,[],0,0);
-% % Get timestamp for Initial fixation to determine remaining duration
-% Screen('Flip', w);
-% 
-% WaitSecs(InterTrialFixationTime);
+% Renable the keyboard echo and screen clear all
+ListenChar();
 sca;
 
 %% Post-Task
