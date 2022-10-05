@@ -6,7 +6,7 @@ function config = DD_5Trial_config_new(subjectID,sessionID,protocolID)
 config = struct();
 % Main root directory
 config.basePath = '/home/helpdesk/Documents/MATLAB/RNI-OUD/Delay Discounting/';
-config.dataPath = [config.basePath, 'Delay Discounting Data/', protocolID, '/'];
+config.dataPath = [config.basePath, 'DD Data/', protocolID, '/'];
 
 % Create save directory in "Delay Discounting data" folder
 if not(isfolder([config.dataPath, subjectID]))

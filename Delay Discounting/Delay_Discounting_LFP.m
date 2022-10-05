@@ -45,7 +45,7 @@ RestrictKeysForKbCheck([KbName('LeftArrow'),KbName('RightArrow')]);
 
 % Define the base and data paths
 basePath = '/home/helpdesk/Documents/MATLAB/RNI-OUD/Delay Discounting/';
-dataPath = [basePath, 'Delay Discounting Data/', protocolID, '/'];
+dataPath = [basePath, 'DD Data/', protocolID, '/'];
 
 % Create string to save the data later
 saveName = [dataPath, subjectID, '/' subjectID '_Delay_Discounting_LFP_' , sessionID, '_' datestr(now,'mm_dd_yyyy_HH_MM') '.mat'];
