@@ -1,16 +1,39 @@
-function [] = BART(subjectID)
+function [] = BART(subjectID, sessionID, protocolID)
 % Main Script for BART
 % written August 2022 Jacob Suffridge
-% subjectID must be a string, EX: subjectID = '1234';
+% 
+% Updated September 6th 2022
+% Modified for baseline run for Daisy. Added sessionID, protocolID into the
+% pathing.
+%
+% Updated September 13th 2022
+% Added scoring functionality and added the ability to write the output
+% data to csv.
+%
+% TO DO:
+% Still need to add report functionality. Add configurations just in case, make MRI version?.
+%
+% Example Inputs: (input must be a string that can be used as a directory name
+% subjectID = 'test123';
+% sessionID = '1';
+% protocolID = 'DISCO';
+%% ------------------------------------------------------------------------
+clc;
+% KbCheck Commands
+KbName('UnifyKeyNames');
 
-% clc;
-% subjectID = 'jacob';
+increaseKey = 'LeftArrow';
+submitKey = 'RightArrow';
+
+% flag for demo mode
+demoMode = 1;
+
 % Shift focus to the command window 
 commandwindow
 
 % Define the base path, data path and the path to BART target images
 basePath = '/home/helpdesk/Documents/MATLAB/RNI-OUD/BART/';
-dataPath = [basePath, 'BART Data/'];
+dataPath = [basePath, 'BART Data/', protocolID, '/'];
 targetPath = [basePath, 'BART Targets/'];
 
 % Create save directory in "BART Data" folder
@@ -21,15 +44,19 @@ end
 cd(basePath)
 
 % Create string to save the data later
-saveName = [dataPath, subjectID, '/' subjectID '_BART_' , datestr(now,'mm_dd_yyyy') '.mat'];
+saveName = [dataPath, subjectID, '/', subjectID, '_BART_', sessionID, '_', datestr(now,'mm_dd_yyyy'), '.mat'];
+csvName = [saveName(1:end-4), '.csv'];
 
 %% Parameters to Adjust
-%--- Started 8/11
-numTrials = 1;
+% Change num_trials if in demo mode
+num_trials = 21;
+if demoMode
+    num_trials = 2;
+end 
 timeToWatchPopped = 3;
 minPressLimit = 20;
 maxPressLimit = 50;
-activeKeys = [KbName('a'),KbName('b')];
+activeKeys = [KbName(increaseKey),KbName(submitKey)];
 %---
 
 textSize = 50;
@@ -40,9 +67,13 @@ initialFixationTime = 2;
 InterTrialFixationTime = 2;   %14
 
 % Strings for Instruction Screens
-ScreenInstruct1 = 'In this task, you will be asked to pump up a balloon using the "a" button \n\n\n If you inflate the balloon too much it will explode! \n\n\n\n Press "a" to continue';
-ScreenInstruct2 = 'Inflate the balloon until you think its just about to pop \n\n then press the "b" button. \n\n\n The more you inflate the balloon, the more points you will recieve. \n\n\n\n Press the "b" button to continue';
-ScreenInstruct3 = 'Please wait for the MRI to start';
+ScreenInstruct1 = 'In this task, you will be asked to pump up a balloon using the left arrow button \n\n\n If you inflate the balloon too much it will explode! \n\n\n\n Press left arrow button to continue';
+ScreenInstruct2 = 'Inflate the balloon until you think its just about to pop \n\n then press the right arrow button. \n\n\n The more you inflate the balloon, the more points you will recieve. \n\n\n\n Press the right arrow button to continue';
+ScreenInstruct3 = 'Press the left arrow button to begin the task';
+
+% ScreenInstruct1 = 'In this task, you will be asked to pump up a balloon using the "a" button \n\n\n If you inflate the balloon too much it will explode! \n\n\n\n Press "a" to continue';
+% ScreenInstruct2 = 'Inflate the balloon until you think its just about to pop \n\n then press the "b" button. \n\n\n The more you inflate the balloon, the more points you will recieve. \n\n\n\n Press the "b" button to continue';
+% ScreenInstruct3 = 'Please wait for the MRI to start';
 
 %% Preload the Balloon Images
 % Get names of all BART Targets
@@ -64,7 +95,7 @@ for i = 1:length(balloon)
 end
 
 % Generate a list of maximum values (i.e. balloon will pop after n+1 presses)
-maxList = randi([minPressLimit, maxPressLimit],[numTrials,1]);
+maxList = randi([minPressLimit, maxPressLimit],[num_trials,1]);
 
 %% Prepare the screen
 % Call some default settings for setting up Psychtoolbox
@@ -96,21 +127,26 @@ Screen('BlendFunction', w, 'GL_SRC_ALPHA', 'GL_ONE_MINUS_SRC_ALPHA');
 % Get the size of the on screen window
 [screenXpixels, screenYpixels] = Screen('WindowSize', w);
 
+instructionStamps = cell(3,1);
 %% Instruction Set 1
 % Create screen for first set of instructions
 Screen('TextStyle',w, 1);
 Screen('TextSize',w, textSize);
 Screen('TextFont',w, 'Arial');
 DrawFormattedText(w, ScreenInstruct1, 'center', 'center', black, [], 0, 0);
-Screen('Flip', w);
+instructionStamps{i} = Screen('Flip', w);
 
-str = []; %#ok<*NASGU>
+% Listen for keyboard input to proceed
 FlushEvents('KeyDown');
-% trigger release check for first instructions
-while 1
-    str = GetChar(0);
-    disp(str)
-    if strcmp(str,'a')
+while true
+    while true
+        % check if a specified key is pressed
+        [ keyIsDown, ~, keyCode ] = KbCheck;
+        if(keyIsDown)
+            break;
+        end
+    end
+    if strcmp(KbName(find(keyCode)),increaseKey)
         break;
     end
 end
@@ -118,36 +154,44 @@ end
 %% Instruction Set 2
 % Create screen for second set of instructions
 DrawFormattedText(w,ScreenInstruct2,'center', 'center', black,[],0,0);
-Screen('Flip', w);
+instructionStamps{2} = Screen('Flip', w);
 
-str = []; %#ok<*NASGU>
+% Listen for keyboard input to proceed
 FlushEvents('KeyDown');
-% trigger release check for second instructions
-while 1
-    str = GetChar(0);
-    disp(str)
-    if strcmp(str,'b')
+while true
+    while true
+        % check if a specified key is pressed
+        [ keyIsDown, ~, keyCode ] = KbCheck;
+        if(keyIsDown)
+            break;
+        end
+    end
+    if strcmp(KbName(find(keyCode)),submitKey)
         break;
     end
 end
 
-%% Waiting for MRI Trigger
+%% Waiting for Task to Start
 % Set screen to wait for MRI trigger
 DrawFormattedText(w, ScreenInstruct3,'center', 'center', black,[],0,0);
-Screen('Flip', w);
+instructionStamps{3} = Screen('Flip', w);
 
-str = [];
+% Listen for keyboard input to proceed
 FlushEvents('KeyDown');
-% trigger release check
-while 1
-    str = GetChar(0);
-    disp(str);
-    if strcmp(str,'T')
-        mri_onset = GetSecs;
+while true
+    while true
+        % check if a specified key is pressed
+        [ keyIsDown, ~, keyCode ] = KbCheck;
+        if(keyIsDown)
+            break;
+        end
+    end
+    if strcmp(KbName(find(keyCode)),increaseKey)
+        taskOnset = GetSecs;
         break;
     end
 end
-disp('MRI Trigger received')
+disp('Task Started')
 clc;
 
 %% Initial Fixation pre-Task
@@ -166,15 +210,20 @@ WaitSecs(initialFixationTime);
 RestrictKeysForKbCheck(activeKeys);
 
 % Allocate space to store ratings and reaction times
-buttonPresses = cell(numTrials, 100);
-RT = cell(numTrials, 100);
-exitMsg = cell(numTrials,1);
-pointsEarned = cell(numTrials,1);
+buttonPresses = cell(num_trials, 100);
+RT = cell(num_trials, 100);
+exitMsg = cell(num_trials, 1);
+pointsEarned = cell(num_trials, 1);
+trialsCompleted = cell(num_trials,1);
+
+trialTimestamps = cell(num_trials, 100);
+interTrialFixationStamps = cell(num_trials, 1);
+balloonPoppedTimestamps = cell(num_trials, 1);
 
 % Suppress keyboard echo to command window
 ListenChar(2)
 % Loop through the predefined presentation list
-for i = 1:numTrials
+for i = 1:num_trials
     % Pull the current number of iterations before the balloon pops
     currentThreshold = maxList(i);
 
@@ -187,11 +236,14 @@ for i = 1:numTrials
         Screen('TextStyle',w,1);
         Screen('TextSize',w,textSize);
         Screen('TextFont',w,'Arial');
+        
         % Temp counter for debugging will be deleted from finished task
-        DrawFormattedText(w,[num2str(j),'/',num2str(currentThreshold)], 100, 200, black,[],0,0);
+        if demoMode
+            DrawFormattedText(w,[num2str(j),'/',num2str(currentThreshold)], 100, 200, black,[],0,0);
+        end
 
         % Flip everything to the screen
-        balloonOnsetTime = Screen('Flip', w);
+        trialTimestamps{i,j} = Screen('Flip', w);
 
         % Waiting for participant response
         timedOut = 0;
@@ -212,7 +264,7 @@ for i = 1:numTrials
         % Records Reaction Time and Response Key
         if (~timedOut)
             % Capture the reaction time and button presses
-            RT{i,j} = keyTime - balloonOnsetTime;
+            RT{i,j} = keyTime - trialTimestamps{i,j};
             buttonPresses{i,j} = str;
         else
             % Capture the reaction time and button presses
@@ -221,16 +273,17 @@ for i = 1:numTrials
         end
 
         % Handle the button presses
-        if strcmp(str,'b')
+        if strcmp(str,submitKey)
             % Record the points earned
             pointsEarned{i} = 5*(j-1);
 
             % Record that the trial ended as "Quit Early"
             exitMsg{i} = 'Quit Early';
+            trialsCompleted{i} = j;
             DrawFormattedText(w,['You scored ', num2str(pointsEarned{i}), ' points'], 'center', screenYpixels*0.85, black,[],0,0);
             break;
 
-        elseif strcmp(str,'a') && j == currentThreshold
+        elseif strcmp(str,increaseKey) && j == currentThreshold
             % Record the points earned
             pointsEarned{i} = 0;
 
@@ -238,12 +291,13 @@ for i = 1:numTrials
             Screen('PutImage', w, poppedImgs{currentThreshold});
             DrawFormattedText(w, ['You scored ', num2str(pointsEarned{i}), ' points'], 'center', screenYpixels*0.85, black,[],0,0);
             
-            Screen('Flip',w);
+            balloonPoppedTimestamps{i} = Screen('Flip',w);
             % Let the image stay on screen for timeToWatchPopped seconds
             WaitSecs(timeToWatchPopped);
 
             % Record that the trial ended as "Popped"
             exitMsg{i} = 'Popped';
+            trialsCompleted{i} = j;
         else
             % Only option that goes here is str == 'b' and j ~= currentThreshold
             % do nothing and continue on to next iteration
@@ -256,7 +310,7 @@ for i = 1:numTrials
     Screen('TextFont',w,'Arial');
     DrawFormattedText(w,'+','center', 'center', black,[],0,0);
     % Get timestamp for Initial fixation to determine remaining duration
-    Screen('Flip', w);
+    interTrialFixationStamps{i} = Screen('Flip', w);
 
     % Leave the fixation on the screen for InterTrialFixationTime seconds
     % before moving to the next trial
@@ -267,6 +321,7 @@ end
 % Renable the keyboard echo and screen clear all
 ListenChar();
 sca;
+clc;
 
 %% Post-Task Proccess
 % Create data struct to capture useful variables
@@ -275,8 +330,31 @@ data.RT = RT;
 data.exitMsg = exitMsg;
 data.pointsEarned = pointsEarned;
 data.totalPoints = sum([pointsEarned{:}]);
+data.trialsCompleted = trialsCompleted;
+data.maxList = maxList;
+data.maxPoints = sum(5*(maxList - 1));
 
-% save data to BART Data >> subjectID
+% Save timestamps in data
+data.instructionStamps = instructionStamps;
+data.taskOnset = taskOnset;
+data.initialFixationOnset = initialFixationOnset;
+data.trialTimestamps = trialTimestamps;
+data.interTrialFixationStamps = interTrialFixationStamps;
+data.balloonPoppedTimestamps = balloonPoppedTimestamps;
+
+% Create table to save output csv file
+tblNames = {'Trials Completed','Total Trials','Exit Condition','Pop Ratio','Total Score','Max Possible Score','Score Ratio'};
+tbl = [data.trialsCompleted,num2cell(data.maxList),data.exitMsg];
+tbl{1,end+1} = sum(strcmp(data.exitMsg,'Popped'))/length(data.exitMsg);
+tbl{1,end+1} = data.totalPoints;
+tbl{1,end+1} = data.maxPoints;
+tbl{1,end+1} = data.totalPoints/data.maxPoints;
+
+% Write Data to csv
+BART_tbl = cell2table(tbl,'VariableNames',tblNames);
+writetable(BART_tbl,csvName);
+
+% save data to BART Data >> protocolID >> subjectID
 save(saveName,'data')
 cd(basePath)
 end

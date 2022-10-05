@@ -1,0 +1,232 @@
+function data = CR_training_slider_DEMO(subjectID, sessionID, protocolID, noExposure)
+% CR_training_slider_DEMO.m is a script used to determine the best visual drug cues for
+% the OUD task. The script will showcase a Demo panel of neutral images
+% while allowing the subject to provide a rating of their craving.
+%
+% ---- Jacob Suffridge September 2022
+%
+% Config Parameters:
+% config.textSize, config.fixSize, config.image_duration, config.baseFixation_duration
+%
+% Example Inputs:
+subjectID = 'Jacob_Test';
+sessionID = 'demo';
+protocolID = 'DISCO';
+noExposure = {};
+% ------------------------------------------------------------------------
+
+%% Pre-Task setup ---------------------------------------------------------
+
+% KbCheck Commands
+KbName('UnifyKeyNames');
+leftKey = 'LeftArrow';
+rightKey = 'RightArrow';
+acceptKey = 'DownArrow';
+keys = {leftKey,rightKey,acceptKey};
+
+RestrictKeysForKbCheck([KbName(leftKey),KbName(rightKey),KbName(acceptKey)]);
+
+% Add path to lib to initialize Config_Training function
+addpath('/home/helpdesk/Documents/MATLAB/RNI-OUD/Cue Reactivity/Lib');
+% Add path to OUD Function Library
+addpath('/home/helpdesk/Documents/MATLAB/RNI-OUD/OUD Function Library');
+
+% Call Config_Training.m to set path variables
+config = Config_CR(subjectID);
+
+textColor = config.textColor;
+backgroundColor = config.backgroundColor;
+sliderDuration = config.sliderDuration;
+
+cd(config.root)
+
+% Path to load the training cue list
+list_load_path = [config.root, '/Training_Cue_List.mat']; %#ok<*NASGU>
+
+% Add Library and Drug Cues to path
+addpath(config.lib);
+addpath(config.cues);
+
+% Create save_name for output file
+save_name = [config.data_short, protocolID, '/', subjectID '_' sessionID,'_', datestr(now,'mm_dd_yyyy__HH_MM_SS') '.mat'];
+
+commandwindow;
+
+%% Adjustable Parameters
+
+ScreenInstruct1 = 'During this task, you will be shown a series of images \n\n\n Press the LEFT arrow button to continue';
+ScreenInstruct2 = 'Before and after each image you will be asked to \n\n rate your craving on a slider scale \n\n\n Press the RIGHT arrow button to continue';
+ScreenInstruct3 = 'When the slider is on screen: \n\n\n Press the RIGHT arrow button to increase the slider \n\n\n Press the LEFT arrow button to decrease the slider \n\n\n Press the DOWN arrow button to submit your answer \n\n\n Press the DOWN arrow button to continue';
+ScreenInstruct4 = 'Press the LEFT arrow button to start the task';
+
+instructionCell = {ScreenInstruct1,ScreenInstruct2,ScreenInstruct3,ScreenInstruct4};
+advanceKeys = {'LeftArrow','RightArrow','DownArrow','LeftArrow'};
+
+%% Screen Setup
+% Call some default settings for setting up Psychtoolbox
+PsychDefaultSetup(2);
+
+% Initialize screen preferences
+Screen('Preference', 'ConserveVRAM', 4096);
+% Screen('Preference','VBLTimestampingMode',-1);
+Screen('Preference','SkipSyncTests', 0);
+Screen('Preference','VisualDebugLevel', 0);
+% Get the screen numbers
+screens = Screen('Screens');
+
+% Draw to the external screen if available
+screenNumber = max(screens);
+% screenNumber = 1;
+
+% Open an on screen window
+[w, ~] = PsychImaging('OpenWindow', screenNumber, backgroundColor);
+Screen('BlendFunction', w, 'GL_SRC_ALPHA', 'GL_ONE_MINUS_SRC_ALPHA');
+
+% Get the size of the on screen window
+[screenXpixels, screenYpixels] = Screen('WindowSize', w);
+
+% Prepare a loading screen
+Screen('TextStyle',w, 1);
+Screen('TextSize',w, config.textSize);
+Screen('TextFont',w, 'Arial');
+DrawFormattedText(w, 'Loading...', 'center', 'center', textColor, [], 0, 0);
+Screen('Flip',w);
+
+% Load the Craving Rating Scales
+rating_dir = dir([config.slider_scales, '/*.JPG']);
+for i = 1:length(rating_dir)
+    craving_scales{i} = imresize(imread([config.slider_scales,'/Slide', num2str(i), '.JPG']),[screenYpixels,screenXpixels]);
+    craving_scales_submitted{i} = imresize(imread([config.slider_scales_submitted,'/Slide', num2str(i), '.JPG']),[screenYpixels,screenXpixels]);
+end
+sliderStartPosition = round(length(rating_dir)/2);
+base_rating = craving_scales{sliderStartPosition};
+
+% Pull image list, fetch the folder names for later
+[list, folder_names] = image_list_gen_training(subjectID, noExposure);
+
+% Preload the stimulus images into memory
+[preloaded_images, random_list] = preload_training_images(list,screenYpixels, screenXpixels);
+
+% Get total number of images (Can set a low number for debugging)
+% numImgs = length(list);
+numImgs = 5;
+
+% Generate the random jitter timings
+tmp_img_durations = (250:100:1000)./1000;
+tmp_blankScreen_durations = (500:100:1000)./1000;
+
+img_durations = zeros(1,numImgs);
+blankScreen_durations = zeros(1,numImgs);
+for i = 1:numImgs
+    % Randomly select a duration from the tmp arrays above
+    img_durations(i) = tmp_img_durations(randi(numel(tmp_img_durations)));
+    blankScreen_durations(i) = tmp_blankScreen_durations(randi(numel(tmp_blankScreen_durations)));
+end
+
+% Initialize storage for task information and timestamps
+RT = cell(numImgs,1);
+ratings = cell(numImgs,1);
+img_starts = cell(numImgs,1);
+rating_starts = cell(numImgs,1);
+triggerTimestamps = cell(numImgs,1);
+
+% Present the instruction screens
+instructionTimestamps = showInstructionScreens(w,instructionCell,advanceKeys,textColor,config.textSize);
+
+% Record the task start time
+taskOnset = GetSecs;
+disp('Task Started')
+
+%% Baseline Fixation Screen
+Screen('TextSize',w,config.fixSize);
+DrawFormattedText(w,'+','center', 'center', textColor,[],0,0);
+
+% Get timestamp for Initial fixation to determine remaining duration
+Screen('Flip', w);
+WaitSecs(config.baseFixation_duration);
+
+%% Start of Task
+% Suppress keyboard echo
+ListenChar(2);
+
+% Loop through the list of images
+for j = 1:numImgs
+
+    % Draw initial fixation to the screen ---------------------------------
+    Screen('TextSize',w,config.fixSize);
+    DrawFormattedText(w,'+','center', 'center', textColor,[],0,0);
+    % Flip fixation to the screen for initialFixation_duration seconds
+    Screen('Flip', w);
+    WaitSecs(config.initialFixation_Duration);
+
+    % Pull the current image to the screen --------------------------------
+    Screen('PutImage', w, preloaded_images{j});
+    img_starts{j} = Screen('Flip',w);
+
+    % Allow the image to be on screen for x seconds
+    WaitSecs(img_durations(j));
+
+    % Draw the rating slider ----------------------------------------------
+    [ratings{j}, RT{j}] = showRatingSlider(w,craving_scales,craving_scales_submitted,sliderStartPosition,sliderDuration,keys,textColor,base_rating);
+
+    % Draw a blank screen -------------------------------------------------
+    DrawFormattedText(w,' ','center','center',textColor,[],0,0);
+    Screen('Flip',w);
+    WaitSecs(blankScreen_durations(j));
+    % ---------------------------------------------------------------------
+end
+% Clear screen at the end of the task
+sca;
+% Renable keyboard echo
+ListenChar();
+% Reenable all keys
+RestrictKeysForKbCheck([]);
+
+%% Calculate and Save Task Variables
+% Store labeled ratings in ftemp
+ftemp = [random_list(1:numImgs,:), ratings];
+
+% Fake full size ratings (delete before final version)
+% fake_ratings = num2cell(randi(10,[1,length(list)])-1)';
+% ftemp = [random_list(:,2),fake_ratings];
+
+folders_used = cell(length(folder_names),1);
+% This loop extracts the ratings for each image type since the images were randomized
+for i = 1:length(folder_names)
+    tmp = [];
+    for j = 1:length(ftemp)
+        if strcmp(ftemp{j,2},folder_names(i).name)
+            tmp = [tmp, ftemp{j,3}]; %#ok<*AGROW>
+        end
+    end
+    sorted_ratings{i,1} = tmp;
+    sorted_ratings{i,2} = mean(tmp,2);
+    sorted_ratings{i,3} = min(tmp,[],2);
+    sorted_ratings{i,4} = max(tmp,[],2); %#ok<*SAGROW>
+    folders_used{i,1} = folder_names(i).name;
+end
+
+% Create data struct to store the task variables
+data.ratings = ratings;
+data.RT = RT;
+data.cuesTypes = folders_used;
+data.weights = [sorted_ratings{:,2}]'./sum([sorted_ratings{:,2}]);
+data.min_weights = [sorted_ratings{:,3}]';
+data.max_weights = [sorted_ratings{:,4}]';
+data.save_time = datestr(now,'mm-dd-yyyy_HH:MM:SS');
+data.img_starts = img_starts;
+data.rating_starts = rating_starts;
+data.triggerTimestamps = triggerTimestamps;
+
+data.img_durations = img_durations;
+data.blankScreen_durations = blankScreen_durations;
+
+
+% Save timestamps in data
+data.instructionStamps = instructionTimestamps;
+data.taskOnset = taskOnset;
+
+save(save_name,'data');
+cd(config.root)
+
+% end

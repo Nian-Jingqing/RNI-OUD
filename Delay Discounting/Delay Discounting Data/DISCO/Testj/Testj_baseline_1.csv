@@ -1,0 +1,7 @@
+Now Amount,RT (s),Delay Time,Resp,Now Location,"0-Delayed, 1-Now"
+500,2.909,25 years,1,LeftArrow,0
+750,1.088,25 years,0,LeftArrow,1
+625,1.991,25 years,1,RightArrow,1
+562.5,1.726,25 years,0,LeftArrow,1
+531.25,0.82,25 years,1,LeftArrow,0
+546.88,1.229,25 years,1,LeftArrow,0

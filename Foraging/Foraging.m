@@ -1,9 +1,9 @@
-% function [] = foraging(subjectID)
+function [] = Foraging(subjectID)
 % Main Script for flanker
 % written June 2022 Jacob Suffridge
 % subjectID must be a string, EX: subjectID = '1234';
 % -------------------------------------------------------------------------
-subjectID = 'jacob';
+% subjectID = 'jacob';
 % Define the base and data paths
 
 basePath = '/home/helpdesk/Documents/MATLAB/RNI-OUD/Foraging/';
@@ -216,7 +216,7 @@ for i = 1:length(numApples)-1 % number of apples will be random
 
         % User selects to stay at the current tree
         if strcmp(str, 'a')
-            harvestDelay = 2*(exp(0.5*(1/j) + 1)-2.5)
+            harvestDelay = 2*(exp(0.5*(1/j) + 1)-2.5);
 
             Screen('PutImage', w, img{1,j});
             DrawFormattedText(w, 'Harvesting Apples', 'center', screenYpixels*.05, black, [], 0, 0);
@@ -312,4 +312,4 @@ cd(basePath)
 
 
 
-% end
+end
